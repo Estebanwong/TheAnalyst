@@ -8,16 +8,7 @@ for(p in 1:ncol(c)){
   z <- getall(I)
   print(z)
 }
-level = 6
-a <- restrictedparts(level,3)
-b <- a[,a[1,]<=ceiling(level/2)]
-c <- as.data.frame(as.matrix(b))
-for(p in 1:ncol(c)){
-  d <- c[,p]
-  I <- iterpc(table(d),nrow(d),ordered=TRUE)
-  z <- getall(I)
-  print(z)
-}
+
 level = 6
 a <- restrictedparts(level,4)
 b <- a[,a[1,]<=ceiling(level/2)]
