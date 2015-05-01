@@ -3,9 +3,9 @@ library("partitions")
 install.packages("iterpc")
 library("iterpc")
 #levels 2 and up
-level = 5
+level = 11
 a <- restrictedparts(level,4)
-b <- a[,a[1,]<=ceiling(level/2)]
+b <- a[,which(a[1,]<=ceiling(level/2) & a[1,]<=5)]
 c <- as.data.frame(as.matrix(b))
 for(p in 1:ncol(c)){
   d <- c[,p]
