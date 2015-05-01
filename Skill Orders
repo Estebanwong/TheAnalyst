@@ -1,3 +1,7 @@
+install.packages("partitions")
+library("partitions")
+install.packages("iterpc")
+library("iterpc")
 #levels 2 and up
 level = 5
 a <- restrictedparts(level,4)
