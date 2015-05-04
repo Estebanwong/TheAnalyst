@@ -3,7 +3,7 @@
 # Q CD 8, slow 3 sec
 # Q D 60 110 160 210 260
 # E CD 16, lasts 10 sec
-# E D 20 / 30 / 40 / 50 / 60 (+ 25% AP) Magic Splash Damage: 20 / 30 / 40 / 50 / 60 (+ 25% AP)
+# E D 20 / 30 / 40 / 50 / 60 (+ 25% AP) Splash Damage: 20 / 30 / 40 / 50 / 60 (+ 25% AP)
 #
 # AD <- vector(mode="numeric",length=18)
 # AS <- vector(mode="numeric",length=18)
@@ -19,26 +19,56 @@
 # MR <- 30
 # MS <-335
 
-Level = 1
+Level = 2
 Seconds = 10
 QCD = 8
 AD <- round(0.0467621*(Level^2)+1.93195*(Level)+53.8897)
-AS <- 0.638*(round(0.000384417*(Level^2)+0.0146961*Level+0.984902,digits=3))
-HP <- round(1.62255*(level^2)+62.1716*(level)+510.206)
-HpRegen <- round(0.013532*(level^2)+0.491086*(level)+7.79363)
-ManaRegen <- round(0.0139964*(level^2)+0.534069*(level)+5.46422)
-Armor <- round(0.0612616*(level^2)+2.33603*(level)+24.4799)
+AS <- round(1/(0.638*(0.000384417*(Level^2)+0.0146961*Level+0.984902)),digits=3)
+# HP <- round(1.62255*(Level^2)+62.1716*(Level)+510.206)
+# HpRegen <- round(0.013532*(Level^2)+0.491086*(Level)+7.79363)
+# ManaRegen <- round(0.0139964*(Level^2)+0.534069*(Level)+5.46422)
+Armor <- round(0.0612616*(Level^2)+2.33603*(Level)+24.4799)
+MR <- 0
 Time <- seq(0,Seconds,.001)
 DMGTrigger <- Time[Time%%AS==0]
-DMGTrigger <- Time[which(Time%%AS==0|Time%%ReckoningCD==0)]
-Damage <- matrix(nrow=(length(DMGTrigger)),ncol=6)
+DMGTrigger <- Time[which(Time%%AS==0|Time%%QCD==0)]
+
+Ability <- NULL
+a <- restrictedparts(Level,4)
+b <- a[,which(a[1,]<=ceiling(Level/2) & a[1,]<=5)]
+c <- as.data.frame(as.matrix(b))
+for(p in 1:ncol(c)){
+  d <- c[,p]
+  I <- iterpc(table(d),nrow(d),ordered=TRUE)
+  z <- getall(I)
+  ult <- z[z[,4]<=floor((Level-1)/5),]
+  Ability <- rbind(Ability,ult)
+}
+
+colnames(Ability) <- c("Q","W","E","R")
+Ability[,1] <- ifelse(Ability[,1]!=0,50*Ability[,1]+10,0)
+# Ability[,2]
+Ability[,3] <- ifelse(Ability[,3]!=0,10*Ability[,3]+10,0)
+# Ability[,4]
+# Ability
+
+Damage <- matrix(nrow=(length(DMGTrigger)),ncol=(nrow(Ability)+3))
 Damage[,1] <- DMGTrigger
-colnames(Damage) <- c("Time","AutoDMG","AutosNum","QDMG","QNum","TotalDmg")
-for(i in 1:(length(DMGTrigger))){
-  Damage[,2] <- floor(Damage[,1]/AS)*AD
-  Damage[,3] <- floor(Damage[,1]/AS)
-  Damage[,4] <- 0
-  Damage[,5] <- 0
-  Damage[,6] <- sum(Damage[,2],Damage[,4])
+# colnames(Damage) <- c("Time","AutoDMG","AutosNum","EDMG","QNum","TotalDmg")
+# for(j in 1:nrow(Ability)){
+for(j in 1:nrow(Ability)){
+  for(i in 1:(length(DMGTrigger))){
+    if((Damage[i,1]/AS) <= 5){
+      ShrededArmor <- Armor*(1-.03*(Damage[i,1]/AS))
+      ShrededMR <- MR*(1-.03*(Damage[i,1]/AS))
+      Damage[i,2] <- floor(Damage[i,1]/AS)*(AD*(AD/(ShrededArmor+AD)))
+      Damage[i,3+j] <- floor(Damage[i,1]/AS)*(Ability[j,3]*(Ability[j,3]/(ShrededMR+Ability[j,3])))
+    } else if((Damage[i,1]/AS) > 5){
+      ShrededArmor <- Armor*.85
+      Damage[i,2] <- floor(Damage[i,1]/AS)*(AD*(AD/(ShrededArmor+AD)))
+      Damage[i,3+j] <- floor(Damage[i,1]/AS)*(Ability[j,3]*(Ability[j,3]/(ShrededMR+Ability[j,3])))
+    }
+    Damage[i,3] <- floor(Damage[i,1]/AS)
+  }
 }
 Damage
