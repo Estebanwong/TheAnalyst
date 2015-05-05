@@ -1,25 +1,13 @@
-# max AS runes = 27.9 +13.5 = 41.4
-# base AS 0.638
-# Q CD 8, slow 3 sec
-# Q D 60 110 160 210 260
-# E CD 16, lasts 10 sec
-# E D 20 / 30 / 40 / 50 / 60 (+ 25% AP) Splash Damage: 20 / 30 / 40 / 50 / 60 (+ 25% AP)
-#
-# AD <- vector(mode="numeric",length=18)
-# AS <- vector(mode="numeric",length=18)
-# for(i in 1:18){
-#   AD[i] <- round(0.0467621*(level[i]^2)+1.93195*(level[i])+53.8897)
-#   AS[i] <- 0.638*(round(0.000384417*(level[i]^2)+0.0146961*level[i]+0.984902,digits=3)) 
-# }
-# HP <- c(574,641,711,785,862,942,1025,1111,1201,1294,1390,1490,1593,1699,1808,1920,2036,2155)
-# Regen <- 8.3,8.8,9.4,10,10.6,11.2,11.9,12.6,13.3,14.1,14.8,15.6,16.5,17.3,18.2,19.1,20.1,21.0
-# Mana <- 322,351,381,413,446,480,516,553,592,632,673,716,760,806,853,901,951,1002
-# MRegen <- 6.0,6.6,7.2,7.8,8.5,9.2,9.9,10.6,11.4,12.2,13,13.9,14.8,15.7,16.6,17.6,18.6,19.6
-# Armor <- c(26.9,29.4,32,34.8,37.7,40.7,43.8,47.1,50.5,54,57.6,61.3,65.2,69.2,73.3,77.5,81.9,86.4)
-# MR <- 30
-# MS <-335
-
-Level = 2
+# E CD 16, lasts 10 sec Mana: 45 Range = 525 Max = 675     Magic Splash Damage: 20 / 30 / 40 / 50 / 60 (+ 25% AP) (+ 20 / 25 / 30 / 35 / 40% AD)
+# E 20 / 30 / 40 / 50 / 60 (+ 25% AP) Splash Damage: 20 / 30 / 40 / 50 / 60 (+ 25% AP)
+# W Heal: 60 / 105 / 150 / 195 / 240 (45%)     Movement Speed: 18 / 21 / 24 / 27 / 30% (+ 7% per 100 AP)  COST: 60 / 70 / 80 / 90 / 100 Mana CD: 15
+# Q RANGE: 650 COST: 70 / 75 / 80 / 85 / 90 Mana     (+ 60% AP) (+ 100% Bonus AD)  Slow: 35 / 40 / 45 / 50 / 55%
+MS <-335
+# install.packages("partitions")
+# library("partitions")
+# install.packages("iterpc")
+# library("iterpc")
+Level = 5
 Seconds = 10
 QCD = 8
 AD <- round(0.0467621*(Level^2)+1.93195*(Level)+53.8897)
@@ -27,13 +15,15 @@ AS <- round(1/(0.638*(0.000384417*(Level^2)+0.0146961*Level+0.984902)),digits=3)
 # HP <- round(1.62255*(Level^2)+62.1716*(Level)+510.206)
 # HpRegen <- round(0.013532*(Level^2)+0.491086*(Level)+7.79363)
 # ManaRegen <- round(0.0139964*(Level^2)+0.534069*(Level)+5.46422)
+Mana <- round(0.698013*(Level^2)+26.7377*Level+294.652)
 Armor <- round(0.0612616*(Level^2)+2.33603*(Level)+24.4799)
-MR <- 0
+MR <- 30
 Time <- seq(0,Seconds,.001)
-DMGTrigger <- Time[Time%%AS==0]
-DMGTrigger <- Time[which(Time%%AS==0|Time%%QCD==0)]
+# DMGTrigger <- Time[Time%%AS==0]
+DMGTrigger <- Time[which(round(Time%%AS,digits=5)==0)]#|round(Time%%QCD,digits=5)==0)]
 
 Ability <- NULL
+# Ability <- matrix(c(1,0,0,0,1,0,0,0,1,0,0,0),nrow=3,ncol =4) #Level 1
 a <- restrictedparts(Level,4)
 b <- a[,which(a[1,]<=ceiling(Level/2) & a[1,]<=5)]
 c <- as.data.frame(as.matrix(b))
@@ -52,23 +42,33 @@ Ability[,3] <- ifelse(Ability[,3]!=0,10*Ability[,3]+10,0)
 # Ability[,4]
 # Ability
 
-Damage <- matrix(nrow=(length(DMGTrigger)),ncol=(nrow(Ability)+3))
+Damage <- matrix(nrow=(length(DMGTrigger)),ncol=(nrow(Ability)*2+3))
 Damage[,1] <- DMGTrigger
 # colnames(Damage) <- c("Time","AutoDMG","AutosNum","EDMG","QNum","TotalDmg")
 # for(j in 1:nrow(Ability)){
 for(j in 1:nrow(Ability)){
   for(i in 1:(length(DMGTrigger))){
     if((Damage[i,1]/AS) <= 5){
-      ShrededArmor <- Armor*(1-.03*(Damage[i,1]/AS))
+      ShrededArmor <- Armor*(1-.03*((Damage[i,1]/AS)-1))
       ShrededMR <- MR*(1-.03*(Damage[i,1]/AS))
-      Damage[i,2] <- floor(Damage[i,1]/AS)*(AD*(AD/(ShrededArmor+AD)))
-      Damage[i,3+j] <- floor(Damage[i,1]/AS)*(Ability[j,3]*(Ability[j,3]/(ShrededMR+Ability[j,3])))
+      Damage[i,2] <- floor(Damage[i,1]/AS)*(AD*(100/(ShrededArmor+100)))
+      Damage[i,3+j] <- round((Damage[i,1]/AS)*(Ability[j,3]*100/(ShrededMR+100)), digits =2)
+      Damage[i,nrow(Ability)+3+j] <- round(Ability[j,1]*100/(ShrededMR+100),digits=2)
     } else if((Damage[i,1]/AS) > 5){
       ShrededArmor <- Armor*.85
-      Damage[i,2] <- floor(Damage[i,1]/AS)*(AD*(AD/(ShrededArmor+AD)))
-      Damage[i,3+j] <- floor(Damage[i,1]/AS)*(Ability[j,3]*(Ability[j,3]/(ShrededMR+Ability[j,3])))
+      ShrededMR <- MR*.85
+      Damage[i,2] <- floor(Damage[i,1]/AS)*(AD*(100/(ShrededArmor+100)))
+      Damage[i,3+j] <- round((Damage[i,1]/AS)*(Ability[j,3]*100/(ShrededMR+100)), digits =2)
+      Damage[i,nrow(Ability)+3+j] <- round(Ability[j,1]*100/(ShrededMR+100),digits=2)
     }
+    #     Damage[i,7] <- Ability[,1]
     Damage[i,3] <- floor(Damage[i,1]/AS)
   }
 }
 Damage
+# rowSums(Damage[,c(3+3,15+3)])
+# rowSums(Damage[,c(3+5,15+5)])
+# rowSums(Damage[,c(3+7,15+7)])
+# rowSums(Damage[,c(3+9,15+9)])
+# rowSums(Damage[,c(3+11,15+11)])
+# Ability[c(3,5,7,9,11),]
